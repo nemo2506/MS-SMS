@@ -113,7 +113,6 @@ class MessagePlugin:
         with open("/home/marc/test_base64.txt", "w", encoding="utf-8") as f:
             f.write(payload["base64Jpeg"])
             
-        print(f"Envoi du message à {recipient} avec text='{text}' et image_path='{image_path}' Lenght:'{len(payload['base64Jpeg'])}'")
         return self._post(payload)
 
     # ------------------------------------------------------------------

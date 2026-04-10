@@ -9,6 +9,7 @@ def encode_jpeg_to_base64_max600k(image_path: str) -> str:
     """
     path = Path(image_path)
 
+
     if not path.exists():
         raise FileNotFoundError(f"Fichier image introuvable : {image_path}")
 
