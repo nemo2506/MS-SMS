@@ -109,7 +109,7 @@ class MessagePlugin:
             "text":       text,
             "base64Jpeg": encode_jpeg_to_base64_max600k(image_path) if image_path else "",
         }
-
+        print(f"Envoi du message à {recipient} avec text='{text}' et image_path='{image_path}' Lenght:'{len(payload['base64Jpeg'])}'")
         return self._post(payload)
 
     # ------------------------------------------------------------------
