@@ -1,0 +1,193 @@
+# ms-sms
+
+Client Python pour envoyer des SMS via l'endpoint `POST /api/send-message`, avec ou sans image JPEG en base64.
+
+---
+
+## Installation
+
+```bash
+pip install .
+```
+
+Mode développement (modifications prises en compte sans réinstaller) :
+
+```bash
+pip install -e .
+```
+
+Désinstallation :
+
+```bash
+pip uninstall ms-sms
+```
+
+---
+
+## Utilisation en Python
+
+```python
+from ms_sms import MessagePlugin, APIError
+
+plugin = MessagePlugin(
+    base_url="https://monapi.com",
+    bearer_token="eyJhbGciOiJIUzI1NiIs...",
+    sender_id="MonApp",   # optionnel
+)
+
+# SMS simple
+result = plugin.send(recipient="0612345678", text="Bonjour !")
+print(result)
+# ✅ Succès
+#   Message    : ✅ SMS envoyé avec succès vers +33612345678
+#   Téléphone  : +33612345678
+#   Type       : SMS
+#   Envoyé le  : 03/04/2025 14:31:10
+
+# SMS + image JPEG (max 600 Ko)
+result = plugin.send(
+    recipient="0612345678",
+    text="Voici une photo",
+    image_path="photo.jpg",
+)
+
+# Accès aux champs du résultat
+print(result.success)       # True
+print(result.phone_number)  # +33612345678
+print(result.sent_at)       # 03/04/2025 14:31:10
+print(result.raw)           # dict JSON complet de la réponse
+```
+
+---
+
+## Gestion des erreurs
+
+```python
+import requests
+from ms_sms import MessagePlugin, APIError
+
+plugin = MessagePlugin(
+    base_url="https://monapi.com",
+    bearer_token="mon_token",
+)
+
+try:
+    result = plugin.send(recipient="0612345678", text="Test")
+    print(result)
+
+except APIError as e:
+    # Erreur retournée par l'API (success=false ou HTTP 4xx/5xx)
+    print(e.error)    # "❌ Requête non autorisée : jeton manquant ou invalide"
+    print(e.code)     # code applicatif (ex: 404) ou None
+    print(e.status)   # code HTTP (401, 404, 500…)
+    print(e.sent_at)  # "03/04/2025 14:32:03"
+    print(e.raw)      # dict JSON complet de l'erreur
+
+except FileNotFoundError as e:
+    print(f"Image introuvable : {e}")
+
+except TypeError as e:
+    print(f"Format image invalide : {e}")  # seul JPEG accepté
+
+except requests.Timeout:
+    print("Le serveur n'a pas répondu dans le délai imparti.")
+
+except requests.ConnectionError:
+    print("Impossible de joindre le serveur.")
+```
+
+### Réponses d'erreur gérées
+
+| Cas | Exception |
+|-----|-----------|
+| `success: false` dans le JSON | `APIError` |
+| HTTP 401 — token invalide | `APIError` |
+| HTTP 404 — endpoint introuvable | `APIError` |
+| HTTP 500 — erreur serveur | `APIError` |
+| Fichier image absent | `FileNotFoundError` |
+| Image non JPEG | `TypeError` |
+| Timeout réseau | `requests.Timeout` |
+| Serveur inaccessible | `requests.ConnectionError` |
+
+---
+
+## Utilisation en ligne de commande
+
+Après installation, la commande `ms-sms-send` est disponible :
+
+```bash
+# SMS simple
+ms-sms-send \
+  --url https://monapi.com \
+  --token montoken \
+  --recipient 0612345678 \
+  --text "Bonjour !"
+
+# SMS avec image JPEG (max 600 Ko)
+ms-sms-send \
+  --url https://monapi.com \
+  --token montoken \
+  --recipient 0612345678 \
+  --text "Voici une photo" \
+  --image photo.jpg
+
+# Toutes les options
+ms-sms-send --help
+```
+
+### Options CLI
+
+| Option | Obligatoire | Description |
+|--------|-------------|-------------|
+| `--url` | ✅ | URL de base de l'API |
+| `--token` | ✅ | Bearer token d'authentification |
+| `--recipient` | ✅ | Numéro du destinataire |
+| `--text` | ✅ | Texte du message |
+| `--sender-id` | ➖ | Identifiant expéditeur (senderId) |
+| `--image` | ➖ | Chemin vers un fichier JPEG (max 600 Ko) |
+| `--timeout` | ➖ | Timeout en secondes (défaut: 30) |
+
+---
+
+## Format de la requête envoyée
+
+```json
+{
+    "senderId":   "MonApp",
+    "recipient":  "0612345678",
+    "text":       "Bonjour !",
+    "base64Jpeg": ""
+}
+```
+
+L'authentification est transmise via l'en-tête HTTP :
+
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## Structure du package
+
+```
+ms_sms/
+├── ms_sms/
+│   ├── __init__.py      ← API publique (imports)
+│   ├── client.py        ← MessagePlugin (logique principale)
+│   ├── exceptions.py    ← APIError
+│   ├── models.py        ← SendMessageResult
+│   └── cli.py           ← Commande ms-sms-send
+├── tests/
+│   └── test_client.py
+├── setup.py
+└── README.md
+```
+
+---
+
+## Développement & tests
+
+```bash
+pip install -e ".[dev]"
+pytest tests/
