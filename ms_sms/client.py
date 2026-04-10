@@ -110,9 +110,6 @@ class MessagePlugin:
             "base64Jpeg": encode_jpeg_to_base64_max600k(image_path) if image_path else "",
         }
 
-        with open("/home/marc/test_base64.txt", "w", encoding="utf-8") as f:
-            f.write(payload["base64Jpeg"])
-            
         return self._post(payload)
 
     # ------------------------------------------------------------------
